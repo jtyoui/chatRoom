@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  front:
+    restart: always
+    image: nginx:latest
+    ports:
+      - '15216:80'
+    container_name: ws-front
+    networks:
+      - net
+    volumes:
+      - ./app/dist:/usr/share/nginx/html/
+      - /etc/localtime:/etc/localtime:ro
+
+  backend:
+    restart: always
+    image: alpine
+    container_name: ws-backend
+    ports:
+      - '25461:8080'
+    volumes:
+      - ./app/ws:/ws
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - net
+    command: "./ws"
+
+networks:
+  net:
+    driver: bridge
