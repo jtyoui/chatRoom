@@ -9,7 +9,7 @@
 ## 部署
 只需要执行start.sh脚本即可
 ```shell
-git clone https://github.com/jtyoui/chatRoomFront.git
+git clone https://github.com/jtyoui/chatRoom.git
 cd chatRoomFront
 ./start.sh
 ```
