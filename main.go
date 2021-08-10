@@ -13,6 +13,7 @@ import (
 
 // Data webSocket传播的用户基本数据
 type Data struct {
+	IP       string   `json:"ip"`        // ip地址
 	User     string   `json:"user"`      // 用户名
 	Type     string   `json:"type"`      // 类型：login 登录，handshake 打开网页的状态,system 系统信息,logout 登出,user 普通信息
 	Content  string   `json:"content"`   // 数据内容
@@ -52,6 +53,7 @@ func (h *Hub) run() {
 		select {
 		case r := <-h.Register: // 获取注册信息
 			h.Connection[r] = true
+			r.Data.IP = r.WebSocket.RemoteAddr().String()
 			r.Data.Type = "handshake"
 			r.Data.UserList = userList
 			js, _ := json.Marshal(r.Data)
@@ -75,9 +77,9 @@ func (h *Hub) run() {
 				} else {
 					select {
 					case c.Channel <- data:
-					default: // 防止长时间获取不到数据
-						delete(h.Connection, c)
-						close(c.Channel)
+					//default: // 防止长时间获取不到数据
+					//	delete(h.Connection, c)
+					//	close(c.Channel)
 					}
 				}
 			}
@@ -88,7 +90,6 @@ func (h *Hub) run() {
 // Writer 向websocket里面写数据
 func (c *Connection) Writer() {
 	for message := range c.Channel {
-		fmt.Println(string(message))
 		if err := c.WebSocket.WriteMessage(websocket.TextMessage, message); err != nil { // 写入客户端（网页）
 			log.Fatalln("写入客户端数据异常")
 		}
@@ -103,7 +104,7 @@ func (c *Connection) Reader() {
 	for {
 		_, message, err := c.WebSocket.ReadMessage() // 从客户端（网页）读数据
 		if err != nil {
-			fmt.Println("获取网页信息识别，删除用户")
+			fmt.Println("获取网页信息识别，删除用户" + err.Error())
 			hub.Unregister <- c // 读取数据失败默认移除用户
 			break
 		}
@@ -111,7 +112,7 @@ func (c *Connection) Reader() {
 			log.Fatalln("无法解析网页数据")
 		}
 		if c.Data.Type == "login" {
-			if c.Data.User != "" && len(c.Data.User) > 0 {
+			if len(strings.Trim(c.Data.Content, " ")) > 0 {
 				c.Data.User = c.Data.Content
 				userList = append(userList, c.Data.User)
 				c.Data.UserList = userList
@@ -163,7 +164,7 @@ func main() {
 	route := mux.NewRouter()
 	go hub.run()
 	route.HandleFunc("/ws", handle)
-	if err := http.ListenAndServe(":8080", route); err != nil {
+	if err := http.ListenAndServe(":80", route); err != nil {
 		log.Fatalln("链接异常！")
 	}
 }

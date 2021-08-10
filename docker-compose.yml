@@ -5,20 +5,19 @@ services:
     restart: always
     image: nginx:latest
     ports:
-      - '15216:80'
+      - '80:80'
     container_name: ws-front
     networks:
       - net
     volumes:
-      - ./app/dist:/usr/share/nginx/html/
+      - ./app/dist:/etc/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - /etc/localtime:/etc/localtime:ro
 
   backend:
     restart: always
     image: alpine
     container_name: ws-backend
-    ports:
-      - '25461:8080'
     volumes:
       - ./app/ws:/ws
       - /etc/localtime:/etc/localtime:ro
