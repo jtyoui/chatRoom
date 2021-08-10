@@ -164,7 +164,7 @@ func main() {
 	route := mux.NewRouter()
 	go hub.run()
 	route.HandleFunc("/ws", handle)
-	if err := http.ListenAndServe(":80", route); err != nil {
+	if err := http.ListenAndServe(":11280", route); err != nil {
 		log.Fatalln("链接异常！")
 	}
 }

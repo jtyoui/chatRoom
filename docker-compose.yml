@@ -5,13 +5,12 @@ services:
     restart: always
     image: nginx:latest
     ports:
-      - '80:80'
+      - '11281:80'
     container_name: ws-front
     networks:
       - net
     volumes:
-      - ./app/dist:/etc/nginx/html
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./app/dist:/usr/share/nginx/html/
       - /etc/localtime:/etc/localtime:ro
 
   backend:
@@ -21,6 +20,8 @@ services:
     volumes:
       - ./app/ws:/ws
       - /etc/localtime:/etc/localtime:ro
+    ports:
+      - '11280:11280'
     networks:
       - net
     command: "./ws"
