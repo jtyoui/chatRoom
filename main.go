@@ -77,9 +77,6 @@ func (h *Hub) run() {
 				} else {
 					select {
 					case c.Channel <- data:
-					//default: // 防止长时间获取不到数据
-					//	delete(h.Connection, c)
-					//	close(c.Channel)
 					}
 				}
 			}
@@ -164,6 +161,7 @@ func main() {
 	route := mux.NewRouter()
 	go hub.run()
 	route.HandleFunc("/ws", handle)
+	go Proxy()
 	if err := http.ListenAndServe(":11280", route); err != nil {
 		log.Fatalln("链接异常！")
 	}
