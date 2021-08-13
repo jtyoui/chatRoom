@@ -5,6 +5,7 @@ RUN mkdir /app
 WORKDIR /app
 
 COPY ./main.go ./main.go
+COPY ./proxy.go ./proxy.go
 COPY ./go.mod ./go.mod
 COPY ./dist ./dist
 
