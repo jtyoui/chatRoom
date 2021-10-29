@@ -162,7 +162,7 @@ func handle(c *gin.Context) {
 	}()
 }
 
-//go:embed dist
+//go:embed web/dist
 var efs embed.FS
 
 func main() {
@@ -171,6 +171,7 @@ func main() {
 	go hub.run()
 	r.GET("/ws", handle)
 	r.Use(ginDist.Static(efs, map[string]string{"/": "index.html", "/login": "index.html"}))
+	fmt.Println("http://localhost:11280")
 	if err := r.Run(":11280"); err != nil {
 		log.Fatalln("端口被占用！")
 	}
