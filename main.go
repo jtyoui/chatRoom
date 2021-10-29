@@ -1,9 +1,11 @@
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-middleware/ginDist"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
@@ -38,7 +40,13 @@ type Hub struct {
 
 var (
 	userList []string // 用户列表
-	Upgrade  = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024, CheckOrigin: func(r *http.Request) bool { return true }}
+
+	Upgrade = &websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin:     func(r *http.Request) bool { return true },
+	}
+
 	// 初始化一个全局变量
 	hub = Hub{
 		Connection: make(map[*Connection]bool),
@@ -69,6 +77,7 @@ func (h *Hub) run() {
 					tag := &Data{}
 					if err := json.Unmarshal(data, tag); err != nil {
 						fmt.Println(err)
+						continue
 					}
 					prefix := strings.Split(tag.Content, "@")
 					if c.Data.User == prefix[0] || c.Data.User == tag.User {
@@ -88,7 +97,8 @@ func (h *Hub) run() {
 func (c *Connection) Writer() {
 	for message := range c.Channel {
 		if err := c.WebSocket.WriteMessage(websocket.TextMessage, message); err != nil { // 写入客户端（网页）
-			log.Fatalln("写入客户端数据异常")
+			fmt.Println("写入客户端数据异常")
+			break
 		}
 	}
 	if err := c.WebSocket.Close(); err != nil {
@@ -101,12 +111,11 @@ func (c *Connection) Reader() {
 	for {
 		_, message, err := c.WebSocket.ReadMessage() // 从客户端（网页）读数据
 		if err != nil {
-			fmt.Println("获取网页信息识别，删除用户" + err.Error())
 			hub.Unregister <- c // 读取数据失败默认移除用户
 			break
 		}
 		if err = json.Unmarshal(message, c.Data); err != nil {
-			log.Fatalln("无法解析网页数据")
+			fmt.Println("无法解析网页数据:" + err.Error())
 		}
 		if c.Data.Type == "login" {
 			if len(strings.Trim(c.Data.Content, " ")) > 0 {
@@ -123,46 +132,46 @@ func (c *Connection) Reader() {
 
 // deleteUserList 删除用户列表中的某一个用户
 func deleteUserList(userList []string, user string) []string {
-	count := len(userList)
 	var slice []string
-	if count > 1 { // 当用户列表为0和1的时候，删除一个，表示为空
-		for index := range userList {
-			if userList[index] == user {
-				if index == count { // 最后一个是当前用户
-					slice = userList[:index]
-				} else {
-					slice = append(userList[:index], userList[index+1:]...)
-				}
-				break
-			}
+	fmt.Println(userList, user)
+	for _, username := range userList {
+		if username != user {
+			slice = append(slice, username)
+		} else {
+			break
 		}
 	}
 	return slice
 }
 
 // handle 路由
-func handle(w http.ResponseWriter, r *http.Request) {
-	ws, _ := Upgrade.Upgrade(w, r, nil)
-	c := &Connection{WebSocket: ws, Data: &Data{}, Channel: make(chan []byte, 1024)}
-	hub.Register <- c
-	go c.Writer()
-	c.Reader()
+func handle(c *gin.Context) {
+	ws, _ := Upgrade.Upgrade(c.Writer, c.Request, nil)
+	connection := &Connection{WebSocket: ws, Data: &Data{}, Channel: make(chan []byte, 1024)}
+	hub.Register <- connection
+	go connection.Writer()
+	connection.Reader()
 	defer func() {
-		c.Data.Type = "logout"
-		userList = deleteUserList(userList, c.Data.User)
-		c.Data.UserList = userList
-		hub.Unregister <- c
+		connection.Data.Type = "logout"
+		fmt.Println("删除：" + connection.Data.User)
+		userList = deleteUserList(userList, connection.Data.User)
+		connection.Data.UserList = userList
+		hub.Unregister <- connection
 		js, _ := json.Marshal(c.Data)
 		hub.Send <- js
 	}()
 }
 
+//go:embed dist
+var efs embed.FS
+
 func main() {
-	route := mux.NewRouter()
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.Default()
 	go hub.run()
-	route.HandleFunc("/ws", handle)
-	go Proxy()
-	if err := http.ListenAndServe(":11280", route); err != nil {
-		log.Fatalln("链接异常！")
+	r.GET("/ws", handle)
+	r.Use(ginDist.Static(efs, map[string]string{"/": "index.html", "/login": "index.html"}))
+	if err := r.Run(":11280"); err != nil {
+		log.Fatalln("端口被占用！")
 	}
 }

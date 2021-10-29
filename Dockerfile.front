@@ -1,8 +1,0 @@
-FROM node:alpine3.14
-
-MAINTAINER Jtyoui <jtyoui@qq.com>
-
-COPY ./app/chatRoomFront /chatRoomFront
-WORKDIR /chatRoomFront
-
-RUN npm install
