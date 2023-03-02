@@ -1,12 +1,12 @@
 <template>
   <div class="box">
     <el-container style="height: 800px; border: 1px solid #eee">
-      <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
+      <el-aside style="background-color: rgb(238, 241, 246)" width="200px">
         <h1>在线人数：{{ number }}</h1>
 
         <div class="infinite-list-wrapper" style="overflow:auto;border-top: 1px solid #0072C1">
           <div v-for="user of userList" style="list-style-type: none">
-            <span @click="userCopyChat(user)" style="cursor:pointer;font-size: 16px;margin: auto">{{ user }}</span>
+            <span style="cursor:pointer;font-size: 16px;margin: auto" @click="userCopyChat(user)">{{ user }}</span>
           </div>
         </div>
       </el-aside>
@@ -18,17 +18,17 @@
         </el-header>
 
         <el-main id="scrollText">
-          <div class="chat" v-for="msg of data">
+          <div v-for="msg of data" class="chat">
 
-            <div class="right cams" v-if="msg.right">
-              <img class="headIcon radius" src="../static/img/B.jpg" alt="">
+            <div v-if="msg.right" class="right cams">
+              <img alt="" class="headIcon radius" src="../static/img/B.jpg">
               <span class="name"><p class="title">{{ msg.time }}</p></span>
               <span class="content"> {{ msg.right }} </span>
             </div>
 
             <div v-for="message of msg.left">
-              <div class="left cams" v-if="message.content">
-                <img class="headIcon radius" src="../static/img/A.jpg" alt=""/>
+              <div v-if="message.content" class="left cams">
+                <img alt="" class="headIcon radius" src="../static/img/A.jpg"/>
                 <span class="name"><p class="title">{{ message.user }}-{{ message.time }}</p></span>
                 <span class="content">{{ message.content }}</span>
               </div>
@@ -36,7 +36,7 @@
           </div>
         </el-main>
 
-        <el-input type="textarea" :rows="2" placeholder="请输入内容" v-model="send"
+        <el-input v-model="send" :rows="2" placeholder="请输入内容" type="textarea"
                   @keydown.enter="handleSendClick"></el-input>
       </el-container>
     </el-container>
@@ -50,6 +50,7 @@ import {useRouter} from "vue-router";
 export default {
   name: 'Home',
   setup() {
+    const ip = import.meta.env["VITE_WS_IP"]
     const data = reactive([{
       left: [{user: '', content: '', time: ''}],
       right: '',
@@ -58,7 +59,7 @@ export default {
     let username = ref('')
     const route = useRouter()
     const send = ref('')
-    const ws = new WebSocket('ws://localhost:11280/ws')
+    const ws = new WebSocket(ip)
     let request = {type: '', content: ''}
     const number = ref(0)
     const userList = ref([])
