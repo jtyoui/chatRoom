@@ -1,12 +1,16 @@
-package main
+// Package chatRoom
+// @Time  : 2023/3/2 15:03
+// @Email: jtyoui@qq.com
+// @Author: 张伟
+package chatRoom
 
 import (
 	"embed"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-middleware/ginDist"
 	"github.com/gorilla/websocket"
+	"github.com/gounits/gohtml"
 	"log"
 	"net/http"
 	"strings"
@@ -165,14 +169,14 @@ func handle(c *gin.Context) {
 //go:embed web/dist
 var efs embed.FS
 
-func main() {
+func Serve() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	go hub.run()
+	r.Use(gohtml.NewFs(efs))
 	r.GET("/ws", handle)
-	r.Use(ginDist.Static(efs, map[string]string{"/": "index.html", "/login": "index.html"}))
-	fmt.Println("http://localhost:11280")
-	if err := r.Run(":11280"); err != nil {
+	fmt.Println("启动成功： http://127.0.0.1:11280")
+	if err := r.Run("0.0.0.0:11280"); err != nil {
 		log.Fatalln("端口被占用！")
 	}
 }
